@@ -1,26 +1,36 @@
 package main
 
 import (
+	"context"
+	"flag"
 	"fmt"
+	"log"
+	"os"
 
-	"github.com/cli/go-gh/v2/pkg/api"
+	"github.com/mheap/gh-saved-issues/pkg/savedsearches"
 )
 
 func main() {
-	fmt.Println("hi world, this is the gh-saved-issues extension!")
-	client, err := api.DefaultRESTClient()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	response := struct {Login string}{}
-	err = client.Get("user", &response)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Printf("running as %s\n", response.Login)
-}
+	ctx := context.Background()
 
-// For more examples of using go-gh, see:
-// https://github.com/cli/go-gh/blob/trunk/example_gh_test.go
+	configFlag := flag.String("config", "", "path to config file (default: $XDG_HOME/.github-searches.yaml or $XDG_CONFIG_HOME/.github-searches.yaml)")
+	recreate := flag.Bool("recreate", false, "recreate all saved searches (delete existing first)")
+	reset := flag.Bool("reset", false, "delete configured saved searches without recreating them")
+	flag.Parse()
+
+	configPath, err := savedsearches.ResolveConfigPath(*configFlag)
+	if err != nil {
+		log.Fatalf("resolve config path: %v", err)
+	}
+
+	client, err := savedsearches.NewGraphQLClient(ctx, "")
+	if err != nil {
+		log.Fatalf("init client: %v", err)
+	}
+
+	syncer := savedsearches.NewSyncer(client, *recreate, *reset)
+	if err := syncer.Sync(ctx, configPath); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
