@@ -5,7 +5,7 @@ Manage GitHub saved issue/PR searches from a YAML config and keep them in sync w
 ## Installation
 
 ```sh
-gh extension install github.com/mheap/github-saved-issues
+gh extension install github.com/mheap/gh-saved-issues
 ```
 
 ## Configuration
